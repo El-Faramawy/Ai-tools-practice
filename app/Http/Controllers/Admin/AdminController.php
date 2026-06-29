@@ -7,25 +7,23 @@ use App\Http\Requests\Admin\Admin\UpdateAdminRequest;
 use App\Http\Requests\Admin\Profile\UpdateProfileRequest;
 use App\Models\Admin;
 use App\Http\Controllers\Controller;
+use App\Services\Admin\AdminService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Yajra\DataTables\DataTables;
 
 class AdminController extends Controller
 {
+    protected AdminService $adminService;
+
+    public function __construct(AdminService $adminService)
+    {
+        $this->adminService = $adminService;
+    }
+
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $admins = Admin::latest()->where('id', '!=', admin()->user()->id);
-            return Datatables::of($admins)
-                ->addColumn('action', function ($admin) {
-                    return tableAction($admin->id, true,true);
-                })->addColumn('checkbox', function ($admin) {
-                    return '<input type="checkbox" class="sub_chk" data-id="' . $admin->id . '">';
-                })
-                ->escapeColumns([])
-                ->make(true);
+            return $this->adminService->getAdminsDataTable();
         }
         return view('Admin.Admin.index');
     }
@@ -37,9 +35,7 @@ class AdminController extends Controller
 
     public function store(StoreAdminRequest $request)
     {
-        $data = $request->all();
-        $data['password'] = Hash::make($request->password);
-        Admin::create($data);
+        $this->adminService->storeAdmin($request->all());
         return response()->json(['message' => 'تم الاضافة بنجاح ']);
     }
 
@@ -50,34 +46,26 @@ class AdminController extends Controller
 
     public function update(UpdateAdminRequest $request, Admin $admin)
     {
-        $data = $request->except('password');
-
-        if ($request->password != null)
-            $data['password'] = Hash::make($request->password);
-
-        $admin->update($data);
-
+        $this->adminService->updateAdmin($admin, $request->all());
         return response()->json(['message' => 'تم التعديل بنجاح ']);
     }
 
     public function destroy(Admin $admin)
     {
-        $admin->delete();
+        $this->adminService->deleteAdmin($admin);
         return response()->json(['message' => 'تم الحذف بنجاح']);
     }
 
     public function multiDelete(Request $request)
     {
-        $ids = explode(",", $request->ids);
-        Admin::whereIn('id', $ids)->delete();
-
+        $this->adminService->multiDelete($request->ids);
         return response()->json(['message' => 'تم الحذف بنجاح']);
     }
 
     public function update_profile(UpdateProfileRequest $request)
     {
         if (isset($request->password) && $request->password != null) {
-            $valedator = Validator::make($request->all(), [
+            $validator = Validator::make($request->all(), [
                 'password' => 'required_with:confirm_password|same:confirm_password',
                 'confirm_password' => 'required'
             ],
@@ -87,16 +75,12 @@ class AdminController extends Controller
                     'confirm_password.required' => 'تاكيد كلمة المرور مطلوب',
                 ]
             );
-            if ($valedator->fails())
-                return response()->json(['messages' => $valedator->errors()->getMessages()], 422);
+            if ($validator->fails()) {
+                return response()->json(['messages' => $validator->errors()->getMessages()], 422);
+            }
         }
-        $update = Admin::find(\admin()->id());
-        $update->name = $request->name;
-        $update->email = $request->email;
-        if (isset($request->password) && $request->password != '') {
-            $update->password = Hash::make($request->password);
-        }
-        $update->save();
+
+        $this->adminService->updateProfile($request->all());
         return response()->json(['message' => 'تم تعديل البيانات بنجاح']);
     }
 
@@ -104,6 +88,4 @@ class AdminController extends Controller
     {
         return view('Admin.Profile.index');
     }
-
-
 }

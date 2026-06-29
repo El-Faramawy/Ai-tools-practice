@@ -15,8 +15,26 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Default Admin
+        \App\Models\Admin::updateOrCreate(
+            ['email' => 'admin@admin.com'],
+            [
+                'name' => 'Admin',
+                'password' => \Illuminate\Support\Facades\Hash::make('password'),
+            ]
+        );
 
+        // Default Setting
+        \App\Models\Setting::updateOrCreate(
+            ['id' => 1],
+            [
+                'name' => 'لوحة التحكم',
+                'logo' => 'assets/logo.png',
+                'fav_icon' => 'assets/fav_icon.png',
+            ]
+        );
+
+        // Default User
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',

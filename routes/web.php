@@ -29,6 +29,10 @@ Route::prefix('admin')->middleware('web')->namespace('App\Http\Controllers\Admin
         Route::resource('admins', 'AdminController');
         Route::post('multi_delete_admins', 'AdminController@multiDelete')->name('admins.multiDelete');
 
+        ################################### Brands ##########################################
+        Route::resource('brands', 'BrandController')->parameters(['brands' => 'uuid']);
+
+
     });
 
 

@@ -16,7 +16,7 @@ class BrandService
      */
     public function getBrandsDataTable(int $countryId): mixed
     {
-        $brands = Brand::latest();
+        $brands = Brand::where('country_id', $countryId)->latest();
 
         return DataTables::of($brands)
             ->addColumn('action', function (Brand $brand) {
